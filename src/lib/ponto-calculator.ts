@@ -120,10 +120,11 @@ export function calculatePonto(records: MarcacaoRaw[], funcionarios: Funcionario
             let atraso = 0;
             const dif = minsTrab - expectedMins;
 
-            if (dif > func.toleranciaMinutos) {
+            if (dif > 0) {
+                // Hora extra: qualquer minuto a mais conta (tolerância zero para extra)
                 extra = dif;
             } else if (dif < -func.toleranciaMinutos && expectedMins > 0) {
-                // Atraso só faz sentido se tinha expediente
+                // Atraso: continua respeitando a tolerância definida no cadastro
                 atraso = Math.abs(dif);
             }
 

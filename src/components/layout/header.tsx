@@ -1,12 +1,17 @@
 import { Bell, Search } from "lucide-react"
 
 export function Header() {
-  const currentMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date())
+  const todayFormatted = new Intl.DateTimeFormat('pt-BR', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  }).format(new Date())
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center border-b bg-white px-8">
       <div className="flex flex-1 items-center gap-4">
-        <h2 className="text-lg font-semibold text-slate-800 capitalize">{currentMonth}</h2>
+        <h2 className="text-lg font-semibold text-slate-800 capitalize">{todayFormatted}</h2>
       </div>
       
       <div className="flex items-center gap-6">
