@@ -6,6 +6,8 @@ export interface Funcionario {
     jornadaSaida1: string;
     jornadaEntrada2: string;
     jornadaSaida2: string;
+    jornadaSabEntrada1?: string;
+    jornadaSabSaida1?: string;
     toleranciaMinutos: number;
 }
 
