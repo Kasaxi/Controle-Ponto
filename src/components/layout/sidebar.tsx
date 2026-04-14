@@ -14,10 +14,10 @@ import {
 
 const menuItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Espelho de Ponto", href: "/espelho", icon: FileText },
   { name: "Upload", href: "/upload", icon: Upload },
   { name: "Funcionários", href: "/funcionarios", icon: Users },
   { name: "Feriados", href: "/feriados", icon: Calendar },
-  { name: "Espelho de Ponto", href: "/espelho", icon: FileText },
   { name: "Relatórios", href: "/relatorios", icon: FileText },
 ]
 

@@ -99,6 +99,7 @@ export default function EspelhoPage() {
         case 'feriado': return <Badge variant="outline" className="text-blue-500 border-blue-200 bg-blue-50">Feriado/Abono</Badge>
         case 'descanso': 
         case 'folga': return <Badge variant="outline" className="text-slate-500 border-slate-200 bg-slate-50">Folga</Badge>
+        case 'futuro': return <span className="text-slate-300 text-xs">-</span>
         default: return <Badge variant="outline" className="capitalize">{status || "Pendente"}</Badge>
     }
   }
@@ -163,7 +164,7 @@ export default function EspelhoPage() {
               extra = minsTrab // Todo o trabalho no folga é extra
           }
 
-          const payload = {
+          const payload: any = {
               funcionarioId: emp.idRelogio,
               data: editingDay.data,
               entrada1: editingDay.entrada1 || null,
@@ -172,11 +173,11 @@ export default function EspelhoPage() {
               saida2: editingDay.saida2 || null,
               horasTrabalhadasMinutos: minsTrab,
               atrasoMinutos: atraso,
-              horasExtrasMinutos: extra,
               status: st,
               ajustadoManualmente: true
           }
 
+          // Salvar no Appwrite
           if (editingDay.$id && !editingDay.isMock) {
               await databases.updateDocument(DATABASE_ID, 'ponto_dia', editingDay.$id, payload)
           } else {
@@ -188,9 +189,6 @@ export default function EspelhoPage() {
       } catch (err: any) {
           if (err.message && err.message.includes("already exists")) {
             const customId = `ponto_${emp.idRelogio}_${editingDay.data.split('T')[0]}`
-            const payload = { ...editingDay, ajustadoManualmente: true }
-            delete payload.$id
-            delete payload.isMock
             await databases.updateDocument(DATABASE_ID, 'ponto_dia', customId, payload)
             setIsModalOpen(false)
             fetchPontoMap()
@@ -222,12 +220,16 @@ export default function EspelhoPage() {
               // Detecta Fim de Semana basico, não considerando feriado via DB para simplificar
               const isWeekend = diaDaSemana === 0 || diaDaSemana === 6 // ADICIONADO SABADO (6)
 
+              const hoje = new Date()
+              hoje.setHours(0, 0, 0, 0)
+              const isFuture = dataObj > hoje
+
               fullMonth.push({
                   isMock: true,
                   data: isoDate,
                   entrada1: null, saida1: null, entrada2: null, saida2: null,
                   horasTrabalhadasMinutos: 0, atrasoMinutos: 0, horasExtrasMinutos: 0,
-                  status: isWeekend ? 'descanso' : 'falta'
+                  status: isFuture ? 'futuro' : (isWeekend ? 'descanso' : 'falta')
               })
           }
       }
