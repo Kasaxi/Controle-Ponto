@@ -16,14 +16,15 @@ export const storage = new Storage(client);
 
 // Server-side SDK (for API routes / Server Actions)
 export const createAdminClient = async () => {
-    const serverClient = new Client()
+    const nodeAppwrite = await import('node-appwrite');
+    const serverClient = new nodeAppwrite.Client()
         .setEndpoint(endpoint)
         .setProject(projectId)
         .setKey(apiKey);
 
     return {
-        get account() { return new Account(serverClient); },
-        get databases() { return new Databases(serverClient); },
-        get storage() { return new Storage(serverClient); }
+        get account() { return new nodeAppwrite.Account(serverClient); },
+        get databases() { return new nodeAppwrite.Databases(serverClient); },
+        get storage() { return new nodeAppwrite.Storage(serverClient); }
     };
 };
