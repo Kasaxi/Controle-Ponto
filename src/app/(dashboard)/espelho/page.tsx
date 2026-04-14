@@ -24,7 +24,10 @@ const EMPLOYEES_COLLECTION = 'funcionarios'
 export default function EspelhoPage() {
   const [employees, setEmployees] = useState<any[]>([])
   const [selectedEmp, setSelectedEmp] = useState<string>("")
-  const [selectedMonth, setSelectedMonth] = useState<string>("2026-03") // Começando do mês com dados
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+  }) // Inicia sempre no mês atual
   const [loading, setLoading] = useState(true)
   const [pontoDia, setPontoDia] = useState<any[]>([])
   
@@ -283,9 +286,13 @@ export default function EspelhoPage() {
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(e.target.value)}
                         >
-                            <option value="2026-04">Abr/2026</option>
-                            <option value="2026-03">Mar/2026</option>
-                            <option value="2026-02">Fev/2026</option>
+                            {Array.from({ length: 12 }).map((_, i) => {
+                                const d = new Date()
+                                d.setMonth(d.getMonth() - i)
+                                const val = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`
+                                const label = d.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })
+                                return <option key={val} value={val}>{label.charAt(0).toUpperCase() + label.slice(1)}</option>
+                            })}
                         </select>
                     </div>
                 </div>
