@@ -151,7 +151,7 @@ export default function EspelhoPage() {
           const dif = minsTrab - expectedMins;
           const tolerancia = emp.toleranciaMinutos || 10;
 
-          if (dif > tolerancia) {
+          if (dif > 0) {
               extra = dif;
           } else if (dif < -tolerancia && expectedMins > 0) {
               atraso = Math.abs(dif);
@@ -176,6 +176,7 @@ export default function EspelhoPage() {
               entrada2: editingDay.entrada2 || null,
               saida2: editingDay.saida2 || null,
               horasTrabalhadasMinutos: minsTrab,
+              horasExtrasMinutos: extra,
               atrasoMinutos: atraso,
               status: st,
               ajustadoManualmente: true

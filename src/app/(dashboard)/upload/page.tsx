@@ -84,7 +84,7 @@ export default function UploadPage() {
             try {
                 const cleanPonto: Record<string, any> = {}
                 Object.entries(ponto).forEach(([key, value]) => {
-                    if (value !== null && key !== 'horasExtrasMinutos') {
+                    if (value !== null) {
                         cleanPonto[key] = value
                     }
                 })
