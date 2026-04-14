@@ -296,7 +296,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-function cn(...inputs: any[]) {
-    return inputs.filter(Boolean).join(' ')
-}
