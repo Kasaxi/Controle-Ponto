@@ -82,12 +82,12 @@ export default function UploadPage() {
         
         for (const ponto of batch) {
             try {
-                const cleanPonto: any = {}
-                for (const key in ponto) {
-                    if (ponto[key] !== null && key !== 'horasExtrasMinutos') {
-                        cleanPonto[key] = ponto[key]
+                const cleanPonto: Record<string, any> = {}
+                Object.entries(ponto).forEach(([key, value]) => {
+                    if (value !== null && key !== 'horasExtrasMinutos') {
+                        cleanPonto[key] = value
                     }
-                }
+                })
                 
                 const func = funcionarios.find(f => f.$id === ponto.funcionarioId)
                 if (func) {
