@@ -114,6 +114,7 @@ export default function EspelhoPage() {
       const emp = employees.find(e => e.$id === selectedEmp)
       if (!emp) return
 
+      let payload: any = {};
       try {
           // Recálculo Matemático
           const timeToMins = (time: string) => {
@@ -164,7 +165,7 @@ export default function EspelhoPage() {
               extra = minsTrab // Todo o trabalho no folga é extra
           }
 
-          const payload: any = {
+          payload = {
               funcionarioId: emp.idRelogio,
               data: editingDay.data,
               entrada1: editingDay.entrada1 || null,
