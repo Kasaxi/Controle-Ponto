@@ -14,17 +14,3 @@ export const account = new Account(client);
 export const databases = new Databases(client);
 export const storage = new Storage(client);
 
-// Server-side SDK (for API routes / Server Actions)
-export const createAdminClient = async () => {
-    const nodeAppwrite = await import('node-appwrite');
-    const serverClient = new nodeAppwrite.Client()
-        .setEndpoint(endpoint)
-        .setProject(projectId)
-        .setKey(apiKey);
-
-    return {
-        get account() { return new nodeAppwrite.Account(serverClient); },
-        get databases() { return new nodeAppwrite.Databases(serverClient); },
-        get storage() { return new nodeAppwrite.Storage(serverClient); }
-    };
-};
