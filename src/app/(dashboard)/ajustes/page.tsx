@@ -115,7 +115,7 @@ export default function AjustesPage() {
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <a href={`/espelho`}>
-                                                        <Button variant="outline" size="sm" className="hidden group-hover:flex ml-auto text-blue-600 border-blue-200 hover:bg-blue-50">
+                                                        <Button variant="outline" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity ml-auto text-blue-600 border-blue-200 hover:bg-blue-50">
                                                             Resolver no Espelho <ExternalLink className="h-3 w-3 ml-2" />
                                                         </Button>
                                                     </a>
