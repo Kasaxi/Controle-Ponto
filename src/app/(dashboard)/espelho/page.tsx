@@ -244,6 +244,7 @@ export default function EspelhoPage() {
   const generatedMonthRows = getDaysInMonth()
   const totalHorasMensais = generatedMonthRows.reduce((acc, curr) => acc + (curr.horasTrabalhadasMinutos || 0), 0)
   const totalAtrasosMensais = generatedMonthRows.reduce((acc, curr) => acc + (curr.atrasoMinutos || 0), 0)
+  const totalExtrasMensais = generatedMonthRows.reduce((acc, curr) => acc + (curr.horasExtrasMinutos || 0), 0)
 
   return (
     <div className="space-y-6">
@@ -252,11 +253,11 @@ export default function EspelhoPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Espelho de Ponto</h1>
           <p className="text-slate-500 text-sm">Visualize as batidas diárias calculadas de cada funcionário.</p>
         </div>
-        <div className="flex gap-2">
-            <Button variant="outline" className="text-slate-600 bg-white">
+        <div className="flex gap-2 print:hidden">
+            <Button variant="outline" className="text-slate-600 bg-white" onClick={() => window.print()}>
                 <Printer className="mr-2 h-4 w-4" /> Imprimir
             </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20">
+            <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20" onClick={() => window.print()}>
                 <FileDown className="mr-2 h-4 w-4" /> Exportar PDF
             </Button>
         </div>
@@ -307,7 +308,7 @@ export default function EspelhoPage() {
                 <div className="w-[1px] bg-slate-300"></div>
                 <div className="flex flex-col">
                     <span className="text-slate-500 text-xs font-medium">Horas Extras</span>
-                    <span className="font-bold text-emerald-600">-</span>
+                    <span className="font-bold text-emerald-600">{formatMinsToHHMM(totalExtrasMensais)}</span>
                 </div>
                 <div className="w-[1px] bg-slate-300"></div>
                 <div className="flex flex-col">
@@ -428,6 +429,37 @@ export default function EspelhoPage() {
             </div>
          </form>
       </Dialog>
+
+      <style jsx global>{`
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-container, .print-container * {
+                visibility: visible;
+            }
+            .print-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            aside, nav, header, button, select, .print\\:hidden {
+                display: none !important;
+            }
+            .card, .border-none {
+                border: 1px solid #e2e8f0 !important;
+                box-shadow: none !important;
+            }
+            table {
+                width: 100% !important;
+            }
+            th, td {
+                padding: 4px 8px !important;
+                font-size: 10px !important;
+            }
+        }
+      `}</style>
     </div>
   )
 }

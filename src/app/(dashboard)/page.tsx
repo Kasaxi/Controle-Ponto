@@ -37,7 +37,8 @@ export default function DashboardPage() {
     activeHolidaysMonth: 0,
     pendingAdjustments: 0,
     presentToday: 0,
-    adhesion: 0
+    adhesion: 0,
+    totalExtrasMonth: 0
   })
   const [upcomingHolidays, setUpcomingHolidays] = useState<any[]>([])
   const [frequencyData, setFrequencyData] = useState<any[]>([])
@@ -70,18 +71,28 @@ export default function DashboardPage() {
 
       const pendents = await databases.listDocuments(DATABASE_ID, 'ponto_dia', [
         Query.equal('status', 'incompleto'),
-        Query.limit(1)
+        Query.limit(100)
       ])
 
-      // Cálculo de Presentes Hoje (Real)
-      const startOfToday = new Date()
-      startOfToday.setHours(0,0,0,0)
-      const endOfToday = new Date()
-      endOfToday.setHours(23,59,59,999)
+      // Cálculo de Horas Extras do Mês
+      const now = new Date()
+      const startOfM = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0)
+      
+      const allMonthDocs = await databases.listDocuments(DATABASE_ID, 'ponto_dia', [
+        Query.greaterThanEqual('data', startOfM.toISOString()),
+        Query.limit(5000) 
+      ])
+
+      const totalExtras = allMonthDocs.documents.reduce((acc, doc) => acc + (doc.horasExtrasMinutos || 0), 0)
+
+      // Cálculo de Presentes Hoje (Real) - Ajustado para Fuso Horário
+      const todayIso = now.toLocaleDateString('en-CA') // YYYY-MM-DD
+      const startOfToday = `${todayIso}T00:00:00.000Z`
+      const endOfToday = `${todayIso}T23:59:59.999Z`
 
       const presentTodayDocs = await databases.listDocuments(DATABASE_ID, 'ponto_dia', [
-        Query.greaterThanEqual('data', startOfToday.toISOString()),
-        Query.lessThanEqual('data', endOfToday.toISOString()),
+        Query.greaterThanEqual('data', startOfToday),
+        Query.lessThanEqual('data', endOfToday),
         Query.limit(500)
       ])
       
@@ -126,7 +137,8 @@ export default function DashboardPage() {
         activeHolidaysMonth: holidays.total,
         pendingAdjustments: pendents.total,
         presentToday: uniquePresent,
-        adhesion: adhesion
+        adhesion: adhesion,
+        totalExtrasMonth: totalExtras
       })
     } catch (error) {
       console.error("Error fetching stats:", error)
@@ -153,12 +165,12 @@ export default function DashboardPage() {
       href: "#"
     },
     {
-      title: "Feriados (Mês)",
-      value: stats.activeHolidaysMonth,
-      icon: Calendar,
-      color: "bg-purple-500",
-      description: upcomingHolidays.length > 0 ? `Próximo: ${new Date(upcomingHolidays[0].data).getUTCDate().toString().padStart(2, '0')}/${(new Date(upcomingHolidays[0].data).getUTCMonth() + 1).toString().padStart(2, '0')}` : "Nenhum",
-      href: "/feriados"
+      title: "Horas Extras (Mês)",
+      value: `${Math.floor(stats.totalExtrasMonth / 60)}h ${stats.totalExtrasMonth % 60}m`,
+      icon: TrendingUp,
+      color: "bg-emerald-600",
+      description: "Total acumulado",
+      href: "/relatorios"
     },
     {
       title: "Ajustes Pendentes",
