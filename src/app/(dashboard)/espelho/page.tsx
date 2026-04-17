@@ -14,9 +14,10 @@ import {
   TableRow 
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Search, Printer, FileDown, CalendarDays, Edit2 } from "lucide-react"
+import { Search, Printer, FileDown, CalendarDays, Edit2, Loader2, AlertCircle, TrendingUp, Clock, MapPin, Map } from "lucide-react"
 import { Dialog } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { formatMinsToHHMM, exportToPDF } from "@/lib/export-utils"
 
 const DATABASE_ID = 'ponto-eletronico'
 const EMPLOYEES_COLLECTION = 'funcionarios'
@@ -241,6 +242,39 @@ export default function EspelhoPage() {
       return fullMonth
   }
 
+  const handleExportPDF = async () => {
+    const emp = employees.find(e => e.$id === selectedEmp)
+    if (!emp) return
+
+    setIsLoading(true)
+    try {
+        const days = getDaysInMonth()
+        const headers = ["Data", "Entrada 1", "Saída 1", "Entrada 2", "Saída 2", "Trabalhadas", "Extras", "Atrasos", "Status"]
+        
+        const rows = days.map(d => [
+            new Date(d.data).getUTCDate().toString().padStart(2, '0'),
+            d.entrada1 || '-',
+            d.saida1 || '-',
+            d.entrada2 || '-',
+            d.saida2 || '-',
+            formatMinsToHHMM(d.horasTrabalhadasMinutos),
+            formatMinsToHHMM(d.horasExtrasMinutos),
+            formatMinsToHHMM(d.atrasoMinutos),
+            d.status.toUpperCase()
+        ])
+
+        const filename = `Espelho_${emp.nome.replace(/\s+/g, '_')}_${selectedMonth}`
+        const title = `Espelho de Ponto: ${emp.nome} - ${selectedMonth}`
+        
+        exportToPDF(filename, title, headers, rows, 'l')
+    } catch (err) {
+        console.error(err)
+        alert("Erro ao gerar PDF")
+    } finally {
+        setIsLoading(false)
+    }
+  }
+
   const generatedMonthRows = getDaysInMonth()
   const totalHorasMensais = generatedMonthRows.reduce((acc, curr) => acc + (curr.horasTrabalhadasMinutos || 0), 0)
   const totalAtrasosMensais = generatedMonthRows.reduce((acc, curr) => acc + (curr.atrasoMinutos || 0), 0)
@@ -257,8 +291,13 @@ export default function EspelhoPage() {
             <Button variant="outline" className="text-slate-600 bg-white" onClick={() => window.print()}>
                 <Printer className="mr-2 h-4 w-4" /> Imprimir
             </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20" onClick={() => window.print()}>
-                <FileDown className="mr-2 h-4 w-4" /> Exportar PDF
+            <Button 
+                className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20" 
+                onClick={handleExportPDF}
+                disabled={isLoading}
+            >
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+                Baixar PDF
             </Button>
         </div>
       </div>
@@ -348,7 +387,22 @@ export default function EspelhoPage() {
 
                     return (
                         <TableRow key={dia.data} className={`hover:bg-slate-50 transition-colors ${dia.isMock && !isFinde ? 'bg-red-50/30' : ''} ${isFinde ? 'bg-slate-50 opacity-70' : ''}`}>
-                            <TableCell className="font-medium text-slate-700">{diaFormatado}</TableCell>
+                            <TableCell className="font-medium text-slate-700">
+                                <div className="flex items-center gap-2">
+                                    {diaFormatado}
+                                    {dia.latitude && dia.longitude && (
+                                        <a 
+                                            href={`https://www.google.com/maps?q=${dia.latitude},${dia.longitude}`} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            title="Ver localização no mapa"
+                                            className="text-blue-500 hover:text-blue-700 transition-colors"
+                                        >
+                                            <MapPin className="h-3 w-3" />
+                                        </a>
+                                    )}
+                                </div>
+                            </TableCell>
                             <TableCell className="text-slate-500 text-xs uppercase">{semana}</TableCell>
                             
                             <TableCell className="text-center font-mono text-slate-600">{dia.entrada1 || "-"}</TableCell>

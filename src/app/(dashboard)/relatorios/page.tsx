@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { BarChart3, FileSpreadsheet, Download, Clock, AlertOctagon, UserX, Loader2 } from "lucide-react"
 import { databases } from "@/lib/appwrite"
 import { Query } from "appwrite"
-import { exportToCSV, formatMinsToHHMM } from "@/lib/export-utils"
+import { exportToCSV, exportToPDF, formatMinsToHHMM } from "@/lib/export-utils"
 
 const DATABASE_ID = 'ponto-eletronico'
 
@@ -17,7 +17,6 @@ export default function RelatoriosPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   
-  // Opções de meses dinâmicas
   const monthOptions = Array.from({ length: 12 }).map((_, i) => {
     const d = new Date()
     d.setMonth(d.getMonth() - i)
@@ -26,12 +25,18 @@ export default function RelatoriosPage() {
     return { value: val, label: label.charAt(0).toUpperCase() + label.slice(1) }
   })
 
-  async function fetchData() {
+  // Função central para processar todos os dias do mês para todos os funcionários
+  async function getConsolidatedData() {
     setIsLoading(true)
     try {
-        const [year, month] = selectedMonth.split('-')
-        const startOfMonth = `${year}-${month}-01T00:00:00.000Z`
-        const endOfMonth = `${year}-${month}-31T23:59:59.000Z`
+        const [yearStr, monthStr] = selectedMonth.split('-')
+        const year = parseInt(yearStr)
+        const month = parseInt(monthStr)
+        
+        // Data range correta
+        const startOfMonth = `${yearStr}-${monthStr}-01T00:00:00.000Z`
+        const lastDay = new Date(year, month, 0).getDate()
+        const endOfMonth = `${yearStr}-${monthStr}-${lastDay.toString().padStart(2, '0')}T23:59:59.000Z`
 
         const [pontoDiaResp, empsResp] = await Promise.all([
             databases.listDocuments(DATABASE_ID, 'ponto_dia', [
@@ -45,98 +50,141 @@ export default function RelatoriosPage() {
             ])
         ])
 
-        return {
-            pontos: pontoDiaResp.documents,
-            funcionarios: empsResp.documents
-        }
+        const pontos = pontoDiaResp.documents
+        const funcionarios = empsResp.documents
+        const result: any[] = []
+
+        const hoje = new Date()
+        hoje.setHours(0,0,0,0)
+
+        // Processamento Cruzado: Funcionário x Dias do Mês
+        funcionarios.forEach(func => {
+            for (let i = 1; i <= lastDay; i++) {
+                const dateIso = `${yearStr}-${monthStr}-${i.toString().padStart(2, '0')}T00:00:00.000Z`
+                const dataObj = new Date(year, month - 1, i)
+                
+                if (dataObj > hoje) continue; // Não processa dias futuros
+
+                const record = pontos.find(p => p.funcionarioId === func.idRelogio && p.data.startsWith(dateIso.split('T')[0]))
+                
+                const diaSemana = dataObj.getDay()
+                const isWeekend = diaSemana === 0 || diaSemana === 6
+
+                if (record) {
+                    result.push({
+                        ...record,
+                        nomeFuncionario: func.nome,
+                        isAbsence: false
+                    })
+                } else if (!isWeekend) {
+                    // Se não tem registro e é dia útil, é FALTA
+                    result.push({
+                        funcionarioId: func.idRelogio,
+                        nomeFuncionario: func.nome,
+                        data: dateIso,
+                        horasExtrasMinutos: 0,
+                        atrasoMinutos: 0,
+                        status: 'falta',
+                        isAbsence: true
+                    })
+                }
+            }
+        })
+
+        return result
     } catch (err) {
         console.error(err)
-        alert("Erro ao buscar dados para o relatório")
+        alert("Erro ao processar dados")
         return null
     } finally {
         setIsLoading(false)
     }
   }
 
-  const exportExtras = async () => {
-    const data = await fetchData()
+  const exportExtras = async (format: 'csv' | 'pdf' = 'csv') => {
+    const data = await getConsolidatedData()
     if (!data) return
 
-    const { pontos, funcionarios } = data
     const consolidated: Record<string, { nome: string, total: number }> = {}
 
-    funcionarios.forEach(f => {
-        consolidated[f.idRelogio] = { nome: f.nome, total: 0 }
-    })
-
-    pontos.forEach(p => {
-        if (consolidated[p.funcionarioId]) {
-            consolidated[p.funcionarioId].total += (p.horasExtrasMinutos || 0)
+    data.forEach(p => {
+        if (!consolidated[p.funcionarioId]) {
+            consolidated[p.funcionarioId] = { nome: p.nomeFuncionario, total: 0 }
         }
+        consolidated[p.funcionarioId].total += (p.horasExtrasMinutos || 0)
     })
 
     const rows = Object.values(consolidated)
         .filter(c => c.total > 0)
         .map(c => [c.nome, formatMinsToHHMM(c.total)])
 
-    exportToCSV(`Horas_Extras_${selectedMonth}`, ["Colaborador", "Total Horas Extras"], rows)
+    const headers = ["Colaborador", "Total Horas Extras"]
+    const filename = `Horas_Extras_${selectedMonth}`
+
+    if (format === 'csv') {
+        exportToCSV(filename, headers, rows)
+    } else {
+        exportToPDF(filename, `Relatório de Horas Extras - ${selectedMonth}`, headers, rows)
+    }
   }
 
-  const exportAtrasos = async () => {
-    const data = await fetchData()
+  const exportAtrasos = async (format: 'csv' | 'pdf' = 'csv') => {
+    const data = await getConsolidatedData()
     if (!data) return
 
-    const { pontos, funcionarios } = data
-    const rows: any[][] = []
-
-    pontos.filter(p => p.atrasoMinutos > 0).forEach(p => {
-        const func = funcionarios.find(f => f.idRelogio === p.funcionarioId)
-        rows.push([
+    const rows = data
+        .filter(p => p.atrasoMinutos > 0)
+        .map(p => [
             new Date(p.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
-            func?.nome || `ID: ${p.funcionarioId}`,
+            p.nomeFuncionario,
             formatMinsToHHMM(p.atrasoMinutos),
             p.status
         ])
-    })
 
-    exportToCSV(`Atrasos_${selectedMonth}`, ["Data", "Colaborador", "Atraso", "Status"], rows)
+    const headers = ["Data", "Colaborador", "Atraso", "Status"]
+    const filename = `Atrasos_${selectedMonth}`
+
+    if (format === 'csv') {
+        exportToCSV(filename, headers, rows)
+    } else {
+        exportToPDF(filename, `Relatório de Atrasos - ${selectedMonth}`, headers, rows)
+    }
   }
 
-  const exportFaltas = async () => {
-    const data = await fetchData()
+  const exportFaltas = async (format: 'csv' | 'pdf' = 'csv') => {
+    const data = await getConsolidatedData()
     if (!data) return
 
-    const { pontos, funcionarios } = data
-    const rows: any[][] = []
-
-    pontos.filter(p => p.status === 'falta').forEach(p => {
-        const func = funcionarios.find(f => f.idRelogio === p.funcionarioId)
-        rows.push([
+    const rows = data
+        .filter(p => p.status === 'falta')
+        .map(p => [
             new Date(p.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
-            func?.nome || `ID: ${p.funcionarioId}`,
+            p.nomeFuncionario,
             "Falta Injustificada"
         ])
-    })
 
-    exportToCSV(`Faltas_${selectedMonth}`, ["Data", "Colaborador", "Tipo"], rows)
+    const headers = ["Data", "Colaborador", "Tipo"]
+    const filename = `Faltas_${selectedMonth}`
+
+    if (format === 'csv') {
+        exportToCSV(filename, headers, rows)
+    } else {
+        exportToPDF(filename, `Relatório de Faltas - ${selectedMonth}`, headers, rows)
+    }
   }
 
-  const exportBanco = async () => {
-    const data = await fetchData()
+  const exportBanco = async (format: 'csv' | 'pdf' = 'csv') => {
+    const data = await getConsolidatedData()
     if (!data) return
 
-    const { pontos, funcionarios } = data
     const consolidated: Record<string, { nome: string, extras: number, atrasos: number }> = {}
 
-    funcionarios.forEach(f => {
-        consolidated[f.idRelogio] = { nome: f.nome, extras: 0, atrasos: 0 }
-    })
-
-    pontos.forEach(p => {
-        if (consolidated[p.funcionarioId]) {
-            consolidated[p.funcionarioId].extras += (p.horasExtrasMinutos || 0)
-            consolidated[p.funcionarioId].atrasos += (p.atrasoMinutos || 0)
+    data.forEach(p => {
+        if (!consolidated[p.funcionarioId]) {
+            consolidated[p.funcionarioId] = { nome: p.nomeFuncionario, extras: 0, atrasos: 0 }
         }
+        consolidated[p.funcionarioId].extras += (p.horasExtrasMinutos || 0)
+        consolidated[p.funcionarioId].atrasos += (p.atrasoMinutos || 0)
     })
 
     const rows = Object.values(consolidated).map(c => [
@@ -146,17 +194,25 @@ export default function RelatoriosPage() {
         formatMinsToHHMM(c.extras - c.atrasos)
     ])
 
-    exportToCSV(`Banco_Horas_${selectedMonth}`, ["Colaborador", "Total Extras", "Total Atrasos", "Saldo Mensal"], rows)
+    const headers = ["Colaborador", "Total Extras", "Total Atrasos", "Saldo Mensal"]
+    const filename = `Banco_Horas_${selectedMonth}`
+
+    if (format === 'csv') {
+        exportToCSV(filename, headers, rows)
+    } else {
+        exportToPDF(filename, `Relatório de Banco de Horas - ${selectedMonth}`, headers, rows, 'l')
+    }
   }
 
   const reportTypes = [
     {
         title: "Horas Extras Consolidadas",
-        description: "Gera um relatório CSV com o total de horas extras por colaborador no mês selecionado.",
+        description: "Gera um relatório exportável com o total de horas extras por colaborador no mês selecionado.",
         icon: Clock,
         color: "text-emerald-600",
         bgColor: "bg-emerald-100",
-        onExport: exportExtras
+        onExport: () => exportExtras('csv'),
+        onPDF: () => exportExtras('pdf')
     },
     {
         title: "Ocorrências de Atrasos",
@@ -164,7 +220,8 @@ export default function RelatoriosPage() {
         icon: AlertOctagon,
         color: "text-amber-600",
         bgColor: "bg-amber-100",
-        onExport: exportAtrasos
+        onExport: () => exportAtrasos('csv'),
+        onPDF: () => exportAtrasos('pdf')
     },
     {
         title: "Relatório de Faltas Injustificadas",
@@ -172,7 +229,8 @@ export default function RelatoriosPage() {
         icon: UserX,
         color: "text-red-600",
         bgColor: "bg-red-100",
-        onExport: exportFaltas
+        onExport: () => exportFaltas('csv'),
+        onPDF: () => exportFaltas('pdf')
     },
     {
         title: "Banco de Horas Geral",
@@ -180,7 +238,8 @@ export default function RelatoriosPage() {
         icon: BarChart3,
         color: "text-blue-600",
         bgColor: "bg-blue-100",
-        onExport: exportBanco
+        onExport: () => exportBanco('csv'),
+        onPDF: () => exportBanco('pdf')
     }
   ]
 
@@ -233,7 +292,8 @@ export default function RelatoriosPage() {
                     <Button 
                         variant="outline" 
                         className="bg-slate-100 border-none hover:bg-slate-200 text-slate-500"
-                        onClick={() => alert("Dica: Use a opção 'Imprimir' no Espelho de Ponto para relatórios visuais formatados.")}
+                        onClick={report.onPDF}
+                        disabled={isLoading}
                     >
                         <Download className="h-4 w-4" />
                     </Button>

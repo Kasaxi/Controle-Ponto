@@ -19,6 +19,7 @@ const menuItems = [
   { name: "Funcionários", href: "/funcionarios", icon: Users },
   { name: "Feriados", href: "/feriados", icon: Calendar },
   { name: "Relatórios", href: "/relatorios", icon: FileText },
+  { name: "Ponto Externo", href: "/ponto", icon: UserCircle },
 ]
 
 export function Sidebar() {

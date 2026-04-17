@@ -1,3 +1,6 @@
+import { jsPDF } from "jspdf";
+import "jspdf-autotable";
+
 /**
  * Utility to export data to CSV and trigger download in the browser.
  */
@@ -29,6 +32,41 @@ export function exportToCSV(filename: string, headers: string[], data: any[][]) 
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+/**
+ * Utility to export data to PDF using jsPDF and autoTable.
+ */
+export function exportToPDF(filename: string, title: string, headers: string[], data: any[][], orientation: 'p' | 'l' = 'p') {
+  const doc = new jsPDF({
+    orientation: orientation,
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  // Title
+  doc.setFontSize(18);
+  doc.setTextColor(40);
+  doc.text(title, 14, 22);
+
+  // Date of generation
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 30);
+
+  // Table
+  (doc as any).autoTable({
+    head: [headers],
+    body: data,
+    startY: 35,
+    theme: 'striped',
+    headStyles: { fillColor: [37, 99, 235], textColor: 255 }, // Blue theme
+    styles: { fontSize: 9, cellPadding: 3 },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+    margin: { top: 35 }
+  });
+
+  doc.save(`${filename}.pdf`);
 }
 
 export function formatMinsToHHMM(mins: number): string {

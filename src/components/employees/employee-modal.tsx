@@ -19,6 +19,8 @@ interface Employee {
   jornadaSabSaida1: string
   toleranciaMinutos: number
   ativo: boolean
+  permiteMarcacaoExterna: boolean
+  senhaPonto?: string
 }
 
 interface EmployeeModalProps {
@@ -36,7 +38,9 @@ const DEFAULT_JORNADA = {
   jornadaSabEntrada1: "",
   jornadaSabSaida1: "",
   toleranciaMinutos: 10,
-  ativo: true
+  ativo: true,
+  permiteMarcacaoExterna: false,
+  senhaPonto: ""
 }
 
 export function EmployeeModal({ isOpen, onClose, onSave, initialData }: EmployeeModalProps) {
@@ -52,10 +56,10 @@ export function EmployeeModal({ isOpen, onClose, onSave, initialData }: Employee
   }, [initialData, isOpen])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type } = e.target
+    const { name, value, type, checked } = e.target
     setFormData((prev: any) => ({
       ...prev,
-      [name]: type === 'number' ? parseInt(value) : value
+      [name]: type === 'checkbox' ? checked : (type === 'number' ? parseInt(value) : value)
     }))
   }
 
@@ -99,6 +103,38 @@ export function EmployeeModal({ isOpen, onClose, onSave, initialData }: Employee
             <label className="text-sm font-medium">Departamento</label>
             <Input name="departamento" value={formData.departamento || ""} onChange={handleChange} />
           </div>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold text-blue-600 uppercase tracking-wider">Acesso Externo</h4>
+            <div className="flex items-center gap-2">
+                <input 
+                    type="checkbox" 
+                    id="permiteMarcacaoExterna" 
+                    name="permiteMarcacaoExterna"
+                    checked={formData.permiteMarcacaoExterna || false}
+                    onChange={handleChange}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label htmlFor="permiteMarcacaoExterna" className="text-xs font-semibold text-slate-600">Permitir Marcação Mobile/Web</label>
+            </div>
+          </div>
+          {formData.permiteMarcacaoExterna && (
+            <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="space-y-2">
+                    <label className="text-xs font-medium">Senha de Ponto (PIN)</label>
+                    <Input 
+                        name="senhaPonto" 
+                        placeholder="Ex: 1234" 
+                        maxLength={6}
+                        value={formData.senhaPonto || ""} 
+                        onChange={handleChange} 
+                        required={formData.permiteMarcacaoExterna}
+                    />
+                </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-4 pt-4 border-t">
