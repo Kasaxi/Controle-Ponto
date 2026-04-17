@@ -15,7 +15,25 @@ export default function RelatoriosPage() {
     const now = new Date();
     return `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
   })
+  const [employees, setEmployees] = useState<any[]>([])
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(false)
+  
+  React.useEffect(() => {
+    fetchEmployeesList()
+  }, [])
+
+  async function fetchEmployeesList() {
+    try {
+        const resp = await databases.listDocuments(DATABASE_ID, 'funcionarios', [
+            Query.equal('ativo', true),
+            Query.orderAsc('nome') // Ordem alfabética
+        ])
+        setEmployees(resp.documents)
+    } catch (err) {
+        console.error("Erro ao carregar lista de funcionários:", err)
+    }
+  }
   
   const monthOptions = Array.from({ length: 12 }).map((_, i) => {
     const d = new Date()
@@ -38,16 +56,17 @@ export default function RelatoriosPage() {
         const lastDay = new Date(year, month, 0).getDate()
         const endOfMonth = `${yearStr}-${monthStr}-${lastDay.toString().padStart(2, '0')}T23:59:59.000Z`
 
+        const employeeQuery = selectedEmployeeId === "all" 
+            ? [Query.equal('ativo', true), Query.limit(100)]
+            : [Query.equal('idRelogio', selectedEmployeeId)]
+
         const [pontoDiaResp, empsResp] = await Promise.all([
             databases.listDocuments(DATABASE_ID, 'ponto_dia', [
                 Query.greaterThanEqual('data', startOfMonth),
                 Query.lessThanEqual('data', endOfMonth),
                 Query.limit(5000)
             ]),
-            databases.listDocuments(DATABASE_ID, 'funcionarios', [
-                Query.equal('ativo', true),
-                Query.limit(100)
-            ])
+            databases.listDocuments(DATABASE_ID, 'funcionarios', employeeQuery)
         ])
 
         const pontos = pontoDiaResp.documents
@@ -122,9 +141,12 @@ export default function RelatoriosPage() {
     const filename = `Horas_Extras_${selectedMonth}`
 
     if (format === 'csv') {
-        exportToCSV(filename, headers, rows)
+        const csvRows = selectedEmployeeId === "all" ? rows : rows.map(r => [r[1]])
+        const csvHeaders = selectedEmployeeId === "all" ? headers : ["Total Horas Extras"]
+        exportToCSV(filename, csvHeaders, csvRows)
     } else {
-        exportToPDF(filename, `Relatório de Horas Extras - ${selectedMonth}`, headers, rows)
+        const title = `Relatório de Horas Extras - ${selectedMonth}`
+        exportToPDF(filename, title, headers, rows)
     }
   }
 
@@ -145,9 +167,49 @@ export default function RelatoriosPage() {
     const filename = `Atrasos_${selectedMonth}`
 
     if (format === 'csv') {
-        exportToCSV(filename, headers, rows)
+        const csvRows = selectedEmployeeId === "all"
+            ? rows // Já tem o nome na coluna 2
+            : rows.map(r => r.slice(0, 1).concat(r.slice(2))) // Remove o nome se for individual
+        
+        const csvHeaders = selectedEmployeeId === "all" ? headers : ["Data", "Atraso", "Status"]
+        exportToCSV(filename, csvHeaders, csvRows)
     } else {
-        exportToPDF(filename, `Relatório de Atrasos - ${selectedMonth}`, headers, rows)
+        if (selectedEmployeeId === "all") {
+            // PDF Consolidado com quebras de página
+            const jsPDF = (await import("jspdf")).jsPDF
+            const autoTable = (await import("jspdf-autotable")).default
+            const doc = new jsPDF()
+            
+            const emps = Array.from(new Set(data.map(p => p.nomeFuncionario))).sort()
+            
+            emps.forEach((emp, index) => {
+                if (index > 0) doc.addPage()
+                
+                doc.setFontSize(16)
+                doc.text(`Relatório de Atrasos: ${emp}`, 14, 20)
+                doc.setFontSize(10)
+                doc.text(`Período: ${selectedMonth}`, 14, 28)
+                
+                const empRows = data
+                    .filter(p => p.nomeFuncionario === emp && p.atrasoMinutos > 0)
+                    .map(p => [
+                        new Date(p.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
+                        formatMinsToHHMM(p.atrasoMinutos),
+                        p.status
+                    ])
+                
+                autoTable(doc, {
+                    head: [["Data", "Atraso", "Status"]],
+                    body: empRows,
+                    startY: 35,
+                    theme: 'striped',
+                    headStyles: { fillColor: [37, 99, 235] }
+                })
+            })
+            doc.save(`${filename}.pdf`)
+        } else {
+            exportToPDF(filename, `Relatório de Atrasos - ${selectedMonth}`, ["Data", "Atraso", "Status"], rows.map(r => [r[0], r[2], r[3]]))
+        }
     }
   }
 
@@ -167,9 +229,49 @@ export default function RelatoriosPage() {
     const filename = `Faltas_${selectedMonth}`
 
     if (format === 'csv') {
-        exportToCSV(filename, headers, rows)
+        const csvRows = selectedEmployeeId === "all" ? rows : rows.map(r => [r[0], r[2]])
+        const csvHeaders = selectedEmployeeId === "all" ? headers : ["Data", "Tipo"]
+        exportToCSV(filename, csvHeaders, csvRows)
     } else {
-        exportToPDF(filename, `Relatório de Faltas - ${selectedMonth}`, headers, rows)
+        if (selectedEmployeeId === "all") {
+            const jsPDF = (await import("jspdf")).jsPDF
+            const autoTable = (await import("jspdf-autotable")).default
+            const doc = new jsPDF()
+            
+            const emps = Array.from(new Set(data.map(p => p.nomeFuncionario))).sort()
+            
+            emps.forEach((emp, index) => {
+                const empRows = data
+                    .filter(p => p.nomeFuncionario === emp && p.status === 'falta')
+                    .map(p => [
+                        new Date(p.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
+                        "Falta Injustificada"
+                    ])
+                
+                if (empRows.length === 0) return
+
+                if (doc.getCurrentPageInfo().pageNumber > 1 || index > 0) {
+                     // Só adicionamos página se houver conteúdo e não for a primeira iteração válida
+                     if (index > 0) doc.addPage()
+                }
+                
+                doc.setFontSize(16)
+                doc.text(`Relatório de Faltas: ${emp}`, 14, 20)
+                doc.setFontSize(10)
+                doc.text(`Período: ${selectedMonth}`, 14, 28)
+                
+                autoTable(doc, {
+                    head: [["Data", "Tipo"]],
+                    body: empRows,
+                    startY: 35,
+                    theme: 'striped',
+                    headStyles: { fillColor: [220, 38, 38] } // Red for absences
+                })
+            })
+            doc.save(`${filename}.pdf`)
+        } else {
+            exportToPDF(filename, `Relatório de Faltas - ${selectedMonth}`, ["Data", "Tipo"], rows.map(r => [r[0], r[2]]))
+        }
     }
   }
 
@@ -198,9 +300,40 @@ export default function RelatoriosPage() {
     const filename = `Banco_Horas_${selectedMonth}`
 
     if (format === 'csv') {
-        exportToCSV(filename, headers, rows)
+        const csvRows = selectedEmployeeId === "all" ? rows : rows.map(r => [r[1], r[2], r[3]])
+        const csvHeaders = selectedEmployeeId === "all" ? headers : ["Total Extras", "Total Atrasos", "Saldo Mensal"]
+        exportToCSV(filename, csvHeaders, csvRows)
     } else {
-        exportToPDF(filename, `Relatório de Banco de Horas - ${selectedMonth}`, headers, rows, 'l')
+        if (selectedEmployeeId === "all") {
+            const jsPDF = (await import("jspdf")).jsPDF
+            const autoTable = (await import("jspdf-autotable")).default
+            const doc = new jsPDF()
+            
+            const emps = Array.from(new Set(data.map(p => p.nomeFuncionario))).sort()
+            
+            emps.forEach((emp, index) => {
+                const groupData = rows.find(r => r[0] === emp)
+                if (!groupData) return
+
+                if (index > 0) doc.addPage()
+                
+                doc.setFontSize(16)
+                doc.text(`Banco de Horas: ${emp}`, 14, 20)
+                doc.setFontSize(10)
+                doc.text(`Período: ${selectedMonth}`, 14, 28)
+                
+                autoTable(doc, {
+                    head: [["Total Extras", "Total Atrasos", "Saldo Mensal"]],
+                    body: [[groupData[1], groupData[2], groupData[3]]],
+                    startY: 35,
+                    theme: 'striped',
+                    headStyles: { fillColor: [59, 130, 246] }
+                })
+            })
+            doc.save(`${filename}.pdf`)
+        } else {
+            exportToPDF(filename, `Extrato Banco de Horas - ${selectedMonth}`, ["Total Extras", "Total Atrasos", "Saldo Mensal"], rows.map(r => [r[1], r[2], r[3]]))
+        }
     }
   }
 
@@ -250,17 +383,33 @@ export default function RelatoriosPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Relatórios Gerenciais</h1>
           <p className="text-slate-500 text-sm">Extraia e consolide dados de frequência para o fechamento de folha.</p>
         </div>
-        <div className="flex items-center gap-3 p-2 bg-white rounded-xl border shadow-sm">
-            <span className="text-xs font-bold text-slate-400 uppercase ml-2">Período:</span>
-            <select 
-                className="h-9 rounded-md border-none bg-transparent text-sm font-semibold text-slate-700 outline-none focus:ring-0"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-            >
-                {monthOptions.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-            </select>
+        <div className="flex flex-col sm:flex-row items-center gap-3 p-2 bg-white rounded-xl border shadow-sm">
+            <div className="flex items-center w-full sm:w-auto">
+                <span className="text-xs font-bold text-slate-400 uppercase ml-2 whitespace-nowrap">Mês:</span>
+                <select 
+                    className="h-9 rounded-md border-none bg-transparent text-sm font-semibold text-slate-700 outline-none focus:ring-0 cursor-pointer"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                >
+                    {monthOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                </select>
+            </div>
+            <div className="hidden sm:block w-[1px] h-6 bg-slate-200"></div>
+            <div className="flex items-center w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0">
+                <span className="text-xs font-bold text-slate-400 uppercase ml-2 whitespace-nowrap">Colaborador:</span>
+                <select 
+                    className="h-9 rounded-md border-none bg-transparent text-sm font-semibold text-slate-700 outline-none focus:ring-0 cursor-pointer min-w-[150px]"
+                    value={selectedEmployeeId}
+                    onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                >
+                    <option value="all">Todos os Funcionários</option>
+                    {employees.map(emp => (
+                        <option key={emp.$id} value={emp.idRelogio}>{emp.nome}</option>
+                    ))}
+                </select>
+            </div>
         </div>
       </div>
 
