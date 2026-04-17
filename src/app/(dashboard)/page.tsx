@@ -54,7 +54,7 @@ export default function DashboardPage() {
         Query.equal('ativo', true)
       ])
       
-      const todayIso = new Date().toISOString()
+      const todayFullIso = new Date().toISOString()
       const startOfMonth = new Date()
       startOfMonth.setDate(1)
       
@@ -63,7 +63,7 @@ export default function DashboardPage() {
       ])
 
       const upcoming = await databases.listDocuments(DATABASE_ID, HOLIDAYS_COLLECTION, [
-        Query.greaterThanEqual('data', todayIso),
+        Query.greaterThanEqual('data', todayFullIso),
         Query.orderAsc('data'),
         Query.limit(3)
       ])
