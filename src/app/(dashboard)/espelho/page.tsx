@@ -142,6 +142,10 @@ export default function EspelhoPage() {
               const sSabEnt = timeToMins(emp.jornadaSabEntrada1 || "")
               const sSabSai = timeToMins(emp.jornadaSabSaida1 || "")
               expectedMins = sSabSai > sSabEnt ? sSabSai - sSabEnt : 0
+          } else if (diaSemana === 5) {
+              // Sexta-feira
+              expectedMins = (timeToMins(emp.jornadaSaida1) - timeToMins(emp.jornadaEntrada1)) +
+                             (timeToMins("17:00") - timeToMins(emp.jornadaEntrada2));
           } else {
               expectedMins = (timeToMins(emp.jornadaSaida1) - timeToMins(emp.jornadaEntrada1)) +
                              (timeToMins(emp.jornadaSaida2) - timeToMins(emp.jornadaEntrada2));

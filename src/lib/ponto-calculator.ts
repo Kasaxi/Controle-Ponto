@@ -110,8 +110,12 @@ export function calculatePonto(records: MarcacaoRaw[], funcionarios: Funcionario
                 const sSabEnt = timeToMins(func.jornadaSabEntrada1 || "")
                 const sSabSai = timeToMins(func.jornadaSabSaida1 || "")
                 expectedMins = sSabSai > sSabEnt ? sSabSai - sSabEnt : 0
+            } else if (diaSemana === 5) {
+                // Sexta-Feira: Carga horária reduzida (até às 17:00)
+                expectedMins = (timeToMins(func.jornadaSaida1) - timeToMins(func.jornadaEntrada1)) +
+                               (timeToMins("17:00") - timeToMins(func.jornadaEntrada2));
             } else {
-                // Dia de Semana (Seg-Sex)
+                // Dia de Semana (Seg-Qui)
                 expectedMins = (timeToMins(func.jornadaSaida1) - timeToMins(func.jornadaEntrada1)) +
                                (timeToMins(func.jornadaSaida2) - timeToMins(func.jornadaEntrada2));
             }
