@@ -246,7 +246,7 @@ export default function EspelhoPage() {
     const emp = employees.find(e => e.$id === selectedEmp)
     if (!emp) return
 
-    setIsLoading(true)
+    setLoading(true)
     try {
         const days = getDaysInMonth()
         const headers = ["Data", "Entrada 1", "Saída 1", "Entrada 2", "Saída 2", "Trabalhadas", "Extras", "Atrasos", "Status"]
@@ -271,7 +271,7 @@ export default function EspelhoPage() {
         console.error(err)
         alert("Erro ao gerar PDF")
     } finally {
-        setIsLoading(false)
+        setLoading(false)
     }
   }
 
@@ -294,9 +294,9 @@ export default function EspelhoPage() {
             <Button 
                 className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20" 
                 onClick={handleExportPDF}
-                disabled={isLoading}
+                disabled={loading}
             >
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
                 Baixar PDF
             </Button>
         </div>
