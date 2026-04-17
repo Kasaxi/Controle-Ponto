@@ -78,32 +78,51 @@ export default function PontoExternoPage() {
         Query.limit(1)
       ])
 
-      if (pontoResp.total > 0) {
+        if (pontoResp.total > 0) {
         const doc = pontoResp.documents[0]
         let fieldToUpdate = ""
+        let punchKey = ""
 
-        if (!doc.entrada1) fieldToUpdate = "entrada1"
-        else if (!doc.saida1) fieldToUpdate = "saida1"
-        else if (!doc.entrada2) fieldToUpdate = "entrada2"
-        else if (!doc.saida2) fieldToUpdate = "saida2"
+        if (!doc.entrada1) { fieldToUpdate = "entrada1"; punchKey = "e1"; }
+        else if (!doc.saida1) { fieldToUpdate = "saida1"; punchKey = "s1"; }
+        else if (!doc.entrada2) { fieldToUpdate = "entrada2"; punchKey = "e2"; }
+        else if (!doc.saida2) { fieldToUpdate = "saida2"; punchKey = "s2"; }
         else {
           throw new Error("Limite de 4 batidas diárias atingido.")
+        }
+
+        // Gerenciar JSON de localizações individuais
+        let locationsMap: any = {}
+        if (doc.localizacoes) {
+          try {
+            locationsMap = JSON.parse(doc.localizacoes)
+          } catch (e) {
+            locationsMap = {}
+          }
+        }
+        
+        if (currentLat && currentLng) {
+          locationsMap[punchKey] = `${currentLat},${currentLng}`
         }
 
         await databases.updateDocument(DATABASE_ID, 'ponto_dia', doc.$id, {
           [fieldToUpdate]: timeStr,
           latitude: currentLat,
           longitude: currentLng,
+          localizacoes: JSON.stringify(locationsMap),
           ajustadoManualmente: false // Marcação real
         })
       } else {
         // Primeiro registro do dia
+        const locationsMap = (currentLat && currentLng) ? { e1: `${currentLat},${currentLng}` } : {}
+
         await databases.createDocument(DATABASE_ID, 'ponto_dia', ID.unique(), {
           funcionarioId: emp.idRelogio,
           data: dateKey,
           entrada1: timeStr,
           latitude: currentLat,
           longitude: currentLng,
+          localizacoes: JSON.stringify(locationsMap),
           ajustadoManualmente: false,
           status: 'incompleto'
         })

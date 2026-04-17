@@ -405,10 +405,82 @@ export default function EspelhoPage() {
                             </TableCell>
                             <TableCell className="text-slate-500 text-xs uppercase">{semana}</TableCell>
                             
-                            <TableCell className="text-center font-mono text-slate-600">{dia.entrada1 || "-"}</TableCell>
-                            <TableCell className="text-center font-mono text-slate-600">{dia.saida1 || "-"}</TableCell>
-                            <TableCell className="text-center font-mono text-slate-600">{dia.entrada2 || "-"}</TableCell>
-                            <TableCell className="text-center font-mono text-slate-600">{dia.saida2 || "-"}</TableCell>
+                            <TableCell className="text-center">
+                                {(() => {
+                                    let locales: any = {}
+                                    try { locales = JSON.parse(dia.localizacoes || "{}") } catch(e) {}
+                                    
+                                    const renderTime = (time: string, loc?: string) => (
+                                        <div className="flex items-center justify-center gap-1 group">
+                                            <span className="font-mono text-slate-600">{time || "-"}</span>
+                                            {loc && (
+                                                <a 
+                                                    href={`https://www.google.com/maps?q=${loc}`} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex text-blue-400 hover:text-blue-600 transition-colors"
+                                                    title="Ver local da batida"
+                                                >
+                                                    <MapPin className="h-2.5 w-2.5" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    )
+
+                                    return renderTime(dia.entrada1, locales.e1)
+                                })()}
+                            </TableCell>
+                            <TableCell className="text-center">
+                                {(() => {
+                                    let locales: any = {}
+                                    try { locales = JSON.parse(dia.localizacoes || "{}") } catch(e) {}
+                                    const renderTime = (time: string, loc?: string) => (
+                                        <div className="flex items-center justify-center gap-1 group">
+                                            <span className="font-mono text-slate-600">{time || "-"}</span>
+                                            {loc && (
+                                                <a href={`https://www.google.com/maps?q=${loc}`} target="_blank" rel="noopener noreferrer" className="inline-flex text-blue-400 hover:text-blue-600 transition-colors" title="Ver local da batida">
+                                                    <MapPin className="h-2.5 w-2.5" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    )
+                                    return renderTime(dia.saida1, locales.s1)
+                                })()}
+                            </TableCell>
+                            <TableCell className="text-center">
+                                {(() => {
+                                    let locales: any = {}
+                                    try { locales = JSON.parse(dia.localizacoes || "{}") } catch(e) {}
+                                    const renderTime = (time: string, loc?: string) => (
+                                        <div className="flex items-center justify-center gap-1 group">
+                                            <span className="font-mono text-slate-600">{time || "-"}</span>
+                                            {loc && (
+                                                <a href={`https://www.google.com/maps?q=${loc}`} target="_blank" rel="noopener noreferrer" className="inline-flex text-blue-400 hover:text-blue-600 transition-colors" title="Ver local da batida">
+                                                    <MapPin className="h-2.5 w-2.5" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    )
+                                    return renderTime(dia.entrada2, locales.e2)
+                                })()}
+                            </TableCell>
+                            <TableCell className="text-center">
+                                {(() => {
+                                    let locales: any = {}
+                                    try { locales = JSON.parse(dia.localizacoes || "{}") } catch(e) {}
+                                    const renderTime = (time: string, loc?: string) => (
+                                        <div className="flex items-center justify-center gap-1 group">
+                                            <span className="font-mono text-slate-600">{time || "-"}</span>
+                                            {loc && (
+                                                <a href={`https://www.google.com/maps?q=${loc}`} target="_blank" rel="noopener noreferrer" className="inline-flex text-blue-400 hover:text-blue-600 transition-colors" title="Ver local da batida">
+                                                    <MapPin className="h-2.5 w-2.5" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    )
+                                    return renderTime(dia.saida2, locales.s2)
+                                })()}
+                            </TableCell>
                             
                             <TableCell className="text-center font-mono font-bold text-blue-700 bg-blue-50/30">
                                 {formatMinsToHHMM(dia.horasTrabalhadasMinutos)}
