@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "@/providers/auth-provider"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
+// Deploy trigger: v1.0.1
 function DashboardWrapper({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const router = useRouter()
