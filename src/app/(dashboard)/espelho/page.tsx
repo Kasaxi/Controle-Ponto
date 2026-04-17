@@ -266,10 +266,10 @@ export default function EspelhoPage() {
         const filename = `Espelho_${emp.nome.replace(/\s+/g, '_')}_${selectedMonth}`
         const title = `Espelho de Ponto: ${emp.nome} - ${selectedMonth}`
         
-        exportToPDF(filename, title, headers, rows, 'l')
-    } catch (err) {
-        console.error(err)
-        alert("Erro ao gerar PDF")
+        exportToPDF(filename, title, headers, rows, 'p')
+    } catch (err: any) {
+        console.error("Erro detalhado na geração do PDF:", err)
+        alert(`Erro ao gerar PDF: ${err.message || 'Erro desconhecido'}`)
     } finally {
         setLoading(false)
     }

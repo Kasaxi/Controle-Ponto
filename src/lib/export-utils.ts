@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 /**
  * Utility to export data to CSV and trigger download in the browser.
@@ -55,13 +55,13 @@ export function exportToPDF(filename: string, title: string, headers: string[], 
   doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 30);
 
   // Table
-  (doc as any).autoTable({
+  autoTable(doc, {
     head: [headers],
     body: data,
     startY: 35,
     theme: 'striped',
     headStyles: { fillColor: [37, 99, 235], textColor: 255 }, // Blue theme
-    styles: { fontSize: 9, cellPadding: 3 },
+    styles: { fontSize: 8, cellPadding: 2 },
     alternateRowStyles: { fillColor: [245, 247, 250] },
     margin: { top: 35 }
   });

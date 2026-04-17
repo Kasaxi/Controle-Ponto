@@ -276,26 +276,27 @@ export default function RelatoriosPage() {
                         <CardDescription className="mt-1 leading-relaxed">{report.description}</CardDescription>
                     </div>
                 </CardHeader>
-                <CardContent className="pt-2 flex gap-3 border-t bg-slate-50 mt-4 px-6 py-4 rounded-b-xl">
+                <CardContent className="pt-2 flex flex-col sm:flex-row gap-3 border-t bg-slate-50 mt-4 px-6 py-4 rounded-b-xl">
                     <Button 
-                        onClick={report.onExport} 
+                        onClick={report.onPDF}
                         disabled={isLoading}
-                        className="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 shadow-sm"
                     >
                         {isLoading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin text-blue-600" />
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
-                            <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" />
+                            <Download className="mr-2 h-4 w-4" />
                         )}
-                        Exportar Excel / CSV
+                        Baixar Relatório (PDF)
                     </Button>
                     <Button 
                         variant="outline" 
-                        className="bg-slate-100 border-none hover:bg-slate-200 text-slate-500"
-                        onClick={report.onPDF}
+                        className="bg-white border-slate-200 hover:bg-slate-100 text-slate-600"
+                        onClick={report.onExport} 
                         disabled={isLoading}
                     >
-                        <Download className="h-4 w-4" />
+                        <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" />
+                        Excel
                     </Button>
                 </CardContent>
             </Card>
