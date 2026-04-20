@@ -94,17 +94,36 @@ export default function EspelhoPage() {
       return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusLabel = (status: string) => {
     switch (status) {
-        case 'completo': return <Badge variant="success" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 font-normal">Regular</Badge>
-        case 'atraso': return <Badge variant="warning" className="bg-amber-100 text-amber-700 hover:bg-amber-100 font-normal">Atraso</Badge>
-        case 'incompleto': return <Badge variant="warning" className="bg-orange-100 text-orange-700 hover:bg-orange-100 font-normal">Incompleto</Badge>
-        case 'falta': return <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 font-normal">Falta</Badge>
-        case 'feriado': return <Badge variant="outline" className="text-blue-500 border-blue-200 bg-blue-50">Feriado/Abono</Badge>
+        case 'completo': return "Regular"
+        case 'atraso': return "Atraso"
+        case 'incompleto': return "Incompleto"
+        case 'falta': return "Falta"
+        case 'feriado': return "Feriado/Abono"
+        case 'viagem': return "Abono"
+        case 'atestado': return "Atestado"
         case 'descanso': 
-        case 'folga': return <Badge variant="outline" className="text-slate-500 border-slate-200 bg-slate-50">Folga</Badge>
+        case 'folga': return "Folga"
+        case 'extra': return "Extra"
+        default: return status?.charAt(0).toUpperCase() + status?.slice(1) || "Pendente"
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    const label = getStatusLabel(status)
+    switch (status) {
+        case 'completo': return <Badge variant="success" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 font-normal">{label}</Badge>
+        case 'atraso': return <Badge variant="warning" className="bg-amber-100 text-amber-700 hover:bg-amber-100 font-normal">{label}</Badge>
+        case 'incompleto': return <Badge variant="warning" className="bg-orange-100 text-orange-700 hover:bg-orange-100 font-normal">{label}</Badge>
+        case 'falta': return <Badge variant="destructive" className="bg-red-100 text-red-700 hover:bg-red-100 font-normal">{label}</Badge>
+        case 'feriado': return <Badge variant="outline" className="text-blue-500 border-blue-200 bg-blue-100">{label}</Badge>
+        case 'viagem': 
+        case 'atestado': return <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 font-semibold uppercase tracking-tight">{label}</Badge>
+        case 'descanso': 
+        case 'folga': return <Badge variant="outline" className="text-slate-500 border-slate-200 bg-slate-50">{label}</Badge>
         case 'futuro': return <span className="text-slate-300 text-xs">-</span>
-        default: return <Badge variant="outline" className="capitalize">{status || "Pendente"}</Badge>
+        default: return <Badge variant="outline" className="capitalize">{label}</Badge>
     }
   }
 
@@ -264,7 +283,7 @@ export default function EspelhoPage() {
             formatMinsToHHMM(d.horasTrabalhadasMinutos),
             formatMinsToHHMM(d.horasExtrasMinutos),
             formatMinsToHHMM(d.atrasoMinutos),
-            d.status.toUpperCase()
+            getStatusLabel(d.status).toUpperCase()
         ])
 
         const filename = `Espelho_${emp.nome.replace(/\s+/g, '_')}_${selectedMonth}`
