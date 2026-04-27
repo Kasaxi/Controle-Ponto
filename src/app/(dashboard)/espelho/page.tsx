@@ -31,6 +31,7 @@ export default function EspelhoPage() {
   }) // Inicia sempre no mês atual
   const [loading, setLoading] = useState(true)
   const [pontoDia, setPontoDia] = useState<any[]>([])
+  const [holidays, setHolidays] = useState<any[]>([])
   
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingDay, setEditingDay] = useState<any>(null)
@@ -70,8 +71,9 @@ export default function EspelhoPage() {
     try {
         const [year, month] = selectedMonth.split('-')
         const startOfMonth = `${year}-${month}-01T00:00:00.000Z`
-        const endOfMonth = `${year}-${month}-31T23:59:59.000Z` // Simplificado, engloba fim do mes
+        const endOfMonth = `${year}-${month}-31T23:59:59.000Z` 
 
+        // Buscar batidas
         const resp = await databases.listDocuments(DATABASE_ID, 'ponto_dia', [
             Query.equal('funcionarioId', emp.idRelogio),
             Query.greaterThanEqual('data', startOfMonth),
@@ -80,6 +82,14 @@ export default function EspelhoPage() {
             Query.limit(100)
         ])
         setPontoDia(resp.documents)
+
+        // Buscar feriados do ano/mês
+        const respHolidays = await databases.listDocuments(DATABASE_ID, 'feriados', [
+            Query.greaterThanEqual('data', startOfMonth),
+            Query.lessThanEqual('data', endOfMonth),
+            Query.limit(100)
+        ])
+        setHolidays(respHolidays.documents)
     } catch (err) {
         console.error(err)
     } finally {
@@ -155,7 +165,11 @@ export default function EspelhoPage() {
           const diaSemana = dtObj.getUTCDay()
 
           let expectedMins = 0
-          if (diaSemana === 0) {
+          
+          // Se for feriado, abono ou atestado, a jornada esperada é ZERO
+          const isJustified = ['feriado', 'viagem', 'atestado'].includes(editingDay.status)
+
+          if (isJustified || diaSemana === 0) {
               expectedMins = 0
           } else if (diaSemana === 6) {
               const sSabEnt = timeToMins(emp.jornadaSabEntrada1 || "")
@@ -246,19 +260,26 @@ export default function EspelhoPage() {
               const dataObj = new Date(year, month - 1, i)
               const diaDaSemana = dataObj.getDay() // 0 é domingo, 6 é sabado
 
-              // Detecta Fim de Semana basico, não considerando feriado via DB para simplificar
+              // Detecta se é feriado cadastrado
+              const isFeriado = holidays.some(h => h.data.startsWith(`${year}-${mText}-${dText}`))
+              
               const isWeekend = diaDaSemana === 0 || diaDaSemana === 6 // ADICIONADO SABADO (6)
 
               const hoje = new Date()
               hoje.setHours(0, 0, 0, 0)
               const isFuture = dataObj > hoje
 
+              let st = 'falta'
+              if (isFuture) st = 'futuro'
+              else if (isFeriado) st = 'feriado'
+              else if (isWeekend) st = 'descanso'
+
               fullMonth.push({
                   isMock: true,
                   data: isoDate,
                   entrada1: null, saida1: null, entrada2: null, saida2: null,
                   horasTrabalhadasMinutos: 0, atrasoMinutos: 0, horasExtrasMinutos: 0,
-                  status: isFuture ? 'futuro' : (isWeekend ? 'descanso' : 'falta')
+                  status: st
               })
           }
       }
