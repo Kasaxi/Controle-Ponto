@@ -24,9 +24,12 @@ export function Header() {
           />
         </div>
         
-        <button className="relative rounded-full p-2 text-slate-500 hover:bg-slate-50 transition-colors">
+        <button 
+          onClick={() => alert("Nenhuma notificação nova no momento.")}
+          className="relative rounded-full p-2 text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-all active:scale-95"
+        >
           <Bell className="h-5 w-5" />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 border-2 border-white"></span>
+          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 border-2 border-white animate-pulse"></span>
         </button>
 
         <div className="h-8 w-[1px] bg-slate-200"></div>

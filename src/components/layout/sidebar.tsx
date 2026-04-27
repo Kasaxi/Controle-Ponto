@@ -9,8 +9,11 @@ import {
   Calendar, 
   FileText, 
   Upload, 
-  UserCircle 
+  UserCircle,
+  LogOut 
 } from "lucide-react"
+import { account } from "@/lib/appwrite"
+import { useRouter } from "next/navigation"
 
 const menuItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -24,6 +27,22 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false)
+
+  const handleLogout = async () => {
+    try {
+        setIsLoggingOut(true)
+        await account.deleteSession('current')
+        router.push('/login')
+    } catch (error) {
+        console.error("Logout error:", error)
+        // Mesmo com erro, tenta redirecionar
+        router.push('/login')
+    } finally {
+        setIsLoggingOut(false)
+    }
+  }
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r bg-white transition-transform">
@@ -57,15 +76,22 @@ export function Sidebar() {
         </nav>
 
         <div className="mt-auto border-t pt-4 px-2">
-            <div className="flex items-center gap-3 py-2">
-                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <UserCircle className="h-5 w-5 text-blue-600" />
+            <button 
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="flex w-full items-center gap-3 rounded-lg p-2 transition-all hover:bg-red-50 group"
+            >
+                <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-red-100 transition-colors">
+                    <UserCircle className="h-5 w-5 text-blue-600 group-hover:text-red-600" />
                 </div>
-                <div className="flex flex-col">
-                    <span className="text-sm font-medium text-slate-700">Admin RH</span>
-                    <span className="text-xs text-slate-500">Sair da conta</span>
+                <div className="flex flex-col items-start">
+                    <span className="text-sm font-semibold text-slate-700 group-hover:text-red-700">Admin RH</span>
+                    <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider group-hover:text-red-500">
+                        {isLoggingOut ? "Saindo..." : "Sair da conta"}
+                    </span>
                 </div>
-            </div>
+                <LogOut className="ml-auto h-4 w-4 text-slate-300 group-hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all" />
+            </button>
         </div>
       </div>
     </aside>
